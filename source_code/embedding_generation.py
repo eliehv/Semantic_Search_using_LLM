@@ -1,8 +1,31 @@
+# ################################################################################
+#####                 tokens and embedding Extraction for using  gpt2-large                               
+##################################################################################
+"""
+from transformers import GPT2Tokenizer, GPT2Model
+tokenizer = GPT2Tokenizer.from_pretrained('gpt2-large')
+model = GPT2Model.from_pretrained('gpt2-large')
+
+def get_embedding(sentences,tokenizer, model):
+
+  encoded_input = tokenizer(sentences, return_tensors='pt', truncation = True)
+  with torch.no_grad():
+    outputs = model(**encoded_input)
+  def mean_pooling(model_output, attention_mask):
+          token_embeddings = model_output[0] #First element of model_output contains all token embeddings
+          input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+          return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
+
+
+# Perform pooling. In this case, max pooling.
+  sentence_embeddings = mean_pooling(outputs, encoded_input['attention_mask'])
+  return sentence_embeddings
+"""
 
 # #################################################################################################
 #####                 Embedding Extraction using msmarco-distilbert-dot-v5 langusge model
 ####################################################################################################
-# this part od code must be repeated for all parts of data
+
 tokenizer = AutoTokenizer.from_pretrained('sentence-transformers/msmarco-distilbert-dot-v5')
 model = AutoModel.from_pretrained('sentence-transformers/msmarco-distilbert-dot-v5')
 
@@ -27,6 +50,7 @@ def get_embedding(sentences,tokenizer, model):
 #    because the available free memory and processing can't handle all in once
 #    the embedding extraction function is applied for all parts of the dataset
 ##################################################################################
+# this part of code must be repeated for all parts of data
 iter_group = iter(df.groupby('Clean_Genre', sort = True))
 genre, frame = next(iter_group)
 for genre, frame in iter_group:
