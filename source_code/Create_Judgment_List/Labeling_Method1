@@ -1,0 +1,85 @@
+num_labels = 5
+for q in range(len(query_info)):
+  print(query_info[q]['query'])
+  final_score = []
+  final_index = []
+  final_chunks = []
+  final_title = []
+  final_genre = []
+
+  for i in range(len(query_info[q]["top_k"]["CrossEncoder"])):
+
+    cross_s =list(query_info[q]['top_k']['CrossEncoder'][i])
+
+    final_score.append(min(cross_s))
+    final_index.append(query_info[q]['top_k']['score_idx'][1][i].item())
+    final_chunks.append(query_info[q]['top_k']['chunks'][i][cross_s.index(min(cross_s))])
+    final_title.append(df_new.iloc[int(query_info[q]['top_k']['score_idx'][1][i])]['index'])
+    final_genre.append(df_new.iloc[int(query_info[q]['top_k']['score_idx'][1][i])]['Clean_Genre'])
+
+  data = ({'score':final_score,
+          'index':final_index,
+          'chunk':final_chunks,
+           'title':final_title,
+           'genre':final_genre})
+  df_tmp = pd.DataFrame(data)
+  df_tmp.sort_values('score', ascending = True, inplace = True)
+  df_tmp = df_tmp.iloc[:num_labels]
+#----------------------------------------------------------------------------------
+  final_bscore = []
+  final_bindex = []
+  final_bchunks = []
+  final_btitle = []
+  final_bgenre = []
+  for i in range(len(query_info[q]["top_k"]["BertScore_F1"])):
+
+    bf1 =list(query_info[q]['top_k']['BertScore_F1'][i])
+
+    final_bscore.append(max(bf1))
+    final_bindex.append(query_info[q]['top_k']['score_idx'][1][i].item())
+    final_bchunks.append(query_info[q]['top_k']['chunks'][i][bf1.index(max(bf1))])
+    final_btitle.append(df_new.iloc[int(query_info[q]['top_k']['score_idx'][1][i])]['index'])
+    final_bgenre.append(df_new.iloc[int(query_info[q]['top_k']['score_idx'][1][i])]['Clean_Genre'])
+
+  bdata = ({'score':final_bscore,
+          'index':final_bindex,
+          'chunk':final_bchunks,
+           'title':final_btitle,
+            'genre':final_bgenre})
+  bdf_tmp = pd.DataFrame(bdata)
+  bdf_tmp = bdf_tmp[(bdf_tmp['score'] >= -1) & (bdf_tmp['score'] <= 1)]
+  bdf_tmp.sort_values('score', ascending = False, inplace = True)
+  bdf_tmp = bdf_tmp.iloc[:num_labels]
+
+  crossEncode_tops = []
+  bertScore_tops = []
+
+  for index,row in df_tmp.iterrows():
+    crossEncode_tops.append(row['title'])
+
+  for bindex,brow in bdf_tmp.iterrows():
+    bertScore_tops.append(brow['title'])
+
+  labels = list(set(bertScore_tops).intersection(crossEncode_tops))
+
+
+  if len(labels) == 0 :
+    labels = list(set(bertScore_tops[:(int(num_labels/2))]).union(set(crossEncode_tops[:(int(num_labels/2))])))
+
+  query_info[q]['labels'] = labels
+  print('common titles : ',labels)
+
+
+  crossEncode_idx_tops = []
+  bertScore_idx_tops= []
+  for index,row in df_tmp.iterrows():
+    crossEncode_idx_tops.append(row['index'])
+
+  for bindex,brow in bdf_tmp.iterrows():
+    bertScore_idx_tops.append(brow['index'])
+
+  labels_idx = list(set(bertScore_idx_tops).intersection(crossEncode_idx_tops))
+  if len(labels_idx) == 0 :
+    labels_idx = list(set(bertScore_idx_tops[:(int(num_labels/2))]).union(set(crossEncode_idx_tops[:(int(num_labels/2))])))
+  print(labels_idx)
+  print('\n\n============================\n\n')
